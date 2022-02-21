@@ -1,65 +1,66 @@
 {%- block map %}
-    def set_{{name}}(self, values: list) -> None:
+    {#
+        Fix: This change ensures Avro maps are mapped to dict type on Python
+    #}
+    def set_{{name}}(self, values: dict) -> None:
 
-        self.{{name}} = []
-        if isinstance(values, list):
-            for item in values:
-                for key, value in item.items():
+        self.{{name}} = {}
+        if isinstance(values, dict):
+            for key, value in values.items():
 
-                    if not isinstance(key, str):
-                        raise TypeError(
-                            "Keys in map types must be strings!"
-                        )
+                if not isinstance(key, str):
+                    raise TypeError(
+                        "Keys in map types must be strings!"
+                    )
 
-                    {#- handle tons of types without recursion which sucks... -#}
-                    {%- if field.map_type.fieldtype == 'reference' %}
-                    self.{{name}}.append({key: {{field.map_type.reference_name}}(value)})
-                    {%- elif field.map_type.fieldtype == 'primitive'%}
-                    if isinstance(value, {{primitive_type_map[field.map_type.avrotype]}}):
-                        self.{{name}}.append({key: value})
-                    else:
-                        raise TypeError(
-                            "Type for '{{name}}' should be '{{primitive_type_map[field.map_type.avrotype]}}'"
-                        )
-                    {%- elif field.map_type.fieldtype == 'map'%}
-                    sub_array = []
-                    if isinstance(value, list):
-                        for sub_item in value:
-                            for sub_key, sub_value in sub_item.items():
-                                if not isinstance(sub_key, str):
-                                    raise TypeError(
-                                        "keys in map types must be strings"
-                                    )
-                                {%- if field.map_type.map_type.fieldtype == 'reference' %}
-                                sub_array.append({sub_key: {{field.map_type.map_type.reference_name}}(sub_value)})
-                                {%- elif field.map_type.map_type.fieldtype == 'primitive'%}
-                                if isinstance(sub_value, {{primitive_type_map[field.map_type.map_type.avrotype]}}):
-                                    sub_array.append({sub_key: sub_value})
-                                else:
-                                    raise TypeError(
-                                        "Type for '{{name}}' should be '{{primitive_type_map[field.map_type.map_type.avrotype]}}'"
-                                    )
-                                {%- endif %}
-                    self.{{name}}.append({key: sub_array})
-                    {%- elif field.map_type.fieldtype == 'array'%}
-                    sub_array = []
-                    if isinstance(value, list):
-                        for element in value:
-                            {#- handle tons of types which sucks... -#}
-                            {%- if field.map_type.array_item_type.fieldtype == 'reference' %}
-                            sub_array.append({{field.map_type.array_item_type.reference_name}}(element))
-                            {%- elif field.array_item_type.fieldtype == 'primitive'%}
-                            if isinstance(element, {{primitive_type_map[field.map_type.array_item_type.avrotype]}}):
-                                sub_array.append(element)
-                            else:
-                                raise TypeError(
-                                    "Type for '{{name}}' should be '{{primitive_type_map[field.array_item_type.fieldtype]}}'"
-                                )
-                            {%- endif %}
-                    {%- endif %}
+                {#- handle tons of types without recursion which sucks... -#}
+                {%- if field.map_type.fieldtype == 'reference' %}
+                self.{{name}}.append({key: {{field.map_type.reference_name}}(value)})
+                {%- elif field.map_type.fieldtype == 'primitive'%}
+                if isinstance(value, {{primitive_type_map[field.map_type.avrotype]}}):
+                    self.{{name}}[key] = value
+                else:
+                    raise TypeError(
+                        "Type for '{{name}}' should be '{{primitive_type_map[field.map_type.avrotype]}}'"
+                    )
+                {%- elif field.map_type.fieldtype == 'map'%}
+                sub_dict = []
+                if isinstance(value, dict):
+                    for sub_key, sub_value in value.items():
+                        if not isinstance(sub_key, str):
+                            raise TypeError(
+                                "keys in map types must be strings"
+                            )
+                        {%- if field.map_type.map_type.fieldtype == 'reference' %}
+                        sub_dict[sub_key] = {{field.map_type.map_type.reference_name}}(sub_value)
+                        {%- elif field.map_type.map_type.fieldtype == 'primitive'%}
+                        if isinstance(sub_dict, {{primitive_type_map[field.map_type.map_type.avrotype]}}):
+                            sub_dict[sub_key] = sub_value
+                        else:
+                            raise TypeError(
+                                "Type for '{{name}}' should be '{{primitive_type_map[field.map_type.map_type.avrotype]}}'"
+                            )
+                        {%- endif %}
+                self.{{name}}[key] = sub_dict
+                {%- elif field.map_type.fieldtype == 'array'%}
+                sub_array = []
+                if isinstance(value, list):
+                    for element in value:
+                        {#- handle tons of types which sucks... -#}
+                        {%- if field.map_type.array_item_type.fieldtype == 'reference' %}
+                        sub_array.append({{field.map_type.array_item_type.reference_name}}(element))
+                        {%- elif field.array_item_type.fieldtype == 'primitive'%}
+                        if isinstance(element, {{primitive_type_map[field.map_type.array_item_type.avrotype]}}):
+                            sub_array.append(element)
+                        else:
+                            raise TypeError(
+                                "Type for '{{name}}' should be '{{primitive_type_map[field.array_item_type.fieldtype]}}'"
+                            )
+                        {%- endif %}
+                {%- endif %}
         else:
-            raise TypeError("Field '{{name}}' should be type list")
+            raise TypeError("Field '{{name}}' should be type dict")
 
-    def get_{{name}}(self) -> list:
+    def get_{{name}}(self) -> dict:
         return self.{{name}}
 {%- endblock -%}

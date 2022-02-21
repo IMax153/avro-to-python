@@ -1,7 +1,13 @@
 {% block fileimports %}
 {%- if file.imports %}
 {%- for imp in file.imports -%}
-from {{pip_import}}{{imp.namespace}}.{{imp.name}} import {{imp.name}}
+{#
+    Fix: This change along with changes to the import/reference logic fixes the following invalid output:
+    `from com.namespace.className.var_name import var_name`
+    Now results in
+    `from com.namespace import className`
+#}
+from {{pip_import}}{{imp.namespace}} import {{imp.name}}
 {% endfor -%}
 {%- endif -%}
 {% endblock %}

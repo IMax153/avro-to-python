@@ -99,5 +99,8 @@ def _record_file(file: File, item: dict, queue: List[dict]) -> None:
 
         file.fields[field.name] = field
         file.imports += references
+        # Fix: Fixes issue where only the very first reference would be added within each file
+        # (because functions downstream only appended a new reference if references was empty
+        references = []
 
     file.imports = dedupe_imports(file.imports)
